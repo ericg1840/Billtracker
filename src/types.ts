@@ -25,4 +25,11 @@ export const DEFAULT_CATEGORIES = [
   "Other",
 ];
 
+export const KNOWN_PROVIDERS: { name: string; category: string }[] = [
+  { name: "PECO", category: "Electric" },
+  { name: "American Water", category: "Water" },
+  { name: "Aqua Sewer", category: "Water" },
+  { name: "AT&T", category: "Internet" },
+];
+
 export type BillStatus = "paid" | "overdue" | "due-soon" | "upcoming";
