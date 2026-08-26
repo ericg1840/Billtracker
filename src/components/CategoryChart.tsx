@@ -1,13 +1,12 @@
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import type { Bill } from "../types";
 import { categoryBreakdown } from "../billLogic";
+import { getCategoryStyle } from "../categoryStyle";
 
 interface Props {
   bills: Bill[];
   monthKey: string;
 }
-
-const COLORS = ["#5b8def", "#f5a623", "#7ed321", "#bd10e0", "#50e3c2", "#e94b3c"];
 
 export default function CategoryChart({ bills, monthKey }: Props) {
   const data = categoryBreakdown(bills, monthKey);
@@ -26,9 +25,19 @@ export default function CategoryChart({ bills, monthKey }: Props) {
       <h3>By Category</h3>
       <ResponsiveContainer width="100%" height={240}>
         <PieChart>
-          <Pie data={data} dataKey="amount" nameKey="category" cx="50%" cy="50%" outerRadius={80} label>
-            {data.map((entry, i) => (
-              <Cell key={entry.category} fill={COLORS[i % COLORS.length]} />
+          <Pie
+            data={data}
+            dataKey="amount"
+            nameKey="category"
+            cx="50%"
+            cy="50%"
+            innerRadius={48}
+            outerRadius={80}
+            paddingAngle={2}
+            cornerRadius={6}
+          >
+            {data.map((entry) => (
+              <Cell key={entry.category} fill={getCategoryStyle(entry.category).color} stroke="none" />
             ))}
           </Pie>
           <Tooltip formatter={(v) => `$${Number(v).toFixed(2)}`} />

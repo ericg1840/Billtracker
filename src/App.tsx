@@ -5,7 +5,7 @@ import { monthKey, addMonths, monthLabel } from "./billLogic";
 import Dashboard from "./components/Dashboard";
 import BillForm from "./components/BillForm";
 import ImportModal from "./components/ImportModal";
-import { Download, Upload, Plus, FileUp } from "lucide-react";
+import { Download, Upload, Plus, FileUp, ChevronLeft, ChevronRight, Wallet } from "lucide-react";
 import "./styles/app.css";
 
 export default function App() {
@@ -71,7 +71,22 @@ export default function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>Bill Tracker</h1>
+        <h1 style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: 9,
+              background: "var(--accent)",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Wallet size={17} color="white" />
+          </span>
+          Bill Tracker
+        </h1>
         <div className="header-actions">
           <button className="btn" onClick={() => setShowImport(true)}>
             <FileUp size={16} /> Import
@@ -96,12 +111,20 @@ export default function App() {
       </header>
 
       <div className="month-nav">
-        <button className="btn" onClick={() => setSelectedMonth((m) => addMonths(m, -1))}>
-          ← Prev
+        <button
+          className="btn icon-btn"
+          onClick={() => setSelectedMonth((m) => addMonths(m, -1))}
+          aria-label="Previous month"
+        >
+          <ChevronLeft size={16} />
         </button>
         <span className="month-label">{monthLabel(selectedMonth)}</span>
-        <button className="btn" onClick={() => setSelectedMonth((m) => addMonths(m, 1))}>
-          Next →
+        <button
+          className="btn icon-btn"
+          onClick={() => setSelectedMonth((m) => addMonths(m, 1))}
+          aria-label="Next month"
+        >
+          <ChevronRight size={16} />
         </button>
       </div>
 
