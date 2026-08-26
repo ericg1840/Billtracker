@@ -1,15 +1,22 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Bill } from "./types";
+import type { Transaction } from "./transactionTypes";
 import { getBills, saveBills, exportBackup, importBackup } from "./storage";
+import { getTransactions, saveTransactions } from "./transactionStorage";
 import { monthKey, addMonths, monthLabel } from "./billLogic";
 import Dashboard from "./components/Dashboard";
 import BillForm from "./components/BillForm";
 import ImportModal from "./components/ImportModal";
-import { Download, Upload, Plus, FileUp, ChevronLeft, ChevronRight, Wallet } from "lucide-react";
+import TransactionsView from "./components/TransactionsView";
+import { Download, Upload, Plus, FileUp, ChevronLeft, ChevronRight, Wallet, Receipt } from "lucide-react";
 import "./styles/app.css";
 
+type Tab = "bills" | "transactions";
+
 export default function App() {
+  const [tab, setTab] = useState<Tab>("bills");
   const [bills, setBills] = useState<Bill[]>(() => getBills());
+  const [transactions, setTransactions] = useState<Transaction[]>(() => getTransactions());
   const [selectedMonth, setSelectedMonth] = useState(() => monthKey(new Date()));
   const [showForm, setShowForm] = useState(false);
   const [editingBill, setEditingBill] = useState<Bill | null>(null);
@@ -19,6 +26,10 @@ export default function App() {
   useEffect(() => {
     saveBills(bills);
   }, [bills]);
+
+  useEffect(() => {
+    saveTransactions(transactions);
+  }, [transactions]);
 
   useEffect(() => {
     if (!toast) return;
@@ -53,14 +64,26 @@ export default function App() {
     setShowImport(false);
   }
 
+  function handleImportTransactions(added: Transaction[], summary: string) {
+    setTransactions((prev) => [...prev, ...added]);
+    setToast(summary);
+  }
+
+  function deleteTransaction(id: string) {
+    setTransactions((prev) => prev.filter((t) => t.id !== id));
+  }
+
   function handleBackupImport(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     file.text().then((text) => {
       try {
-        const imported = importBackup(text);
-        setBills(imported);
-        setToast(`Restored ${imported.length} bills from backup.`);
+        const restored = importBackup(text);
+        setBills(restored.bills);
+        setTransactions(restored.transactions);
+        setToast(
+          `Restored ${restored.bills.length} bills and ${restored.transactions.length} transactions from backup.`
+        );
       } catch (err) {
         setToast(err instanceof Error ? err.message : "Failed to import backup.");
       }
@@ -88,9 +111,11 @@ export default function App() {
           Bill Tracker
         </h1>
         <div className="header-actions">
-          <button className="btn" onClick={() => setShowImport(true)}>
-            <FileUp size={16} /> Import
-          </button>
+          {tab === "bills" && (
+            <button className="btn" onClick={() => setShowImport(true)}>
+              <FileUp size={16} /> Import
+            </button>
+          )}
           <button className="btn" onClick={exportBackup}>
             <Download size={16} /> Backup
           </button>
@@ -98,46 +123,79 @@ export default function App() {
             <Upload size={16} /> Restore
             <input type="file" accept="application/json" hidden onChange={handleBackupImport} />
           </label>
-          <button
-            className="btn btn-primary"
-            onClick={() => {
-              setEditingBill(null);
-              setShowForm(true);
-            }}
-          >
-            <Plus size={16} /> Add Bill
-          </button>
+          {tab === "bills" && (
+            <button
+              className="btn btn-primary"
+              onClick={() => {
+                setEditingBill(null);
+                setShowForm(true);
+              }}
+            >
+              <Plus size={16} /> Add Bill
+            </button>
+          )}
         </div>
       </header>
 
-      <div className="month-nav">
+      <div className="app-tabs">
         <button
-          className="btn icon-btn"
-          onClick={() => setSelectedMonth((m) => addMonths(m, -1))}
-          aria-label="Previous month"
+          className={`app-tab ${tab === "bills" ? "active" : ""}`}
+          onClick={() => setTab("bills")}
         >
-          <ChevronLeft size={16} />
+          <Wallet size={15} /> Bills
         </button>
-        <span className="month-label">{monthLabel(selectedMonth)}</span>
         <button
-          className="btn icon-btn"
-          onClick={() => setSelectedMonth((m) => addMonths(m, 1))}
-          aria-label="Next month"
+          className={`app-tab ${tab === "transactions" ? "active" : ""}`}
+          onClick={() => setTab("transactions")}
         >
-          <ChevronRight size={16} />
+          <Receipt size={15} /> Transactions
         </button>
       </div>
 
-      <Dashboard
-        bills={bills}
-        selectedMonth={selectedMonth}
-        onEdit={(bill) => {
-          setEditingBill(bill);
-          setShowForm(true);
-        }}
-        onDelete={deleteBill}
-        onTogglePaid={upsertBill}
-      />
+      {tab === "bills" ? (
+        <>
+          <div className="month-nav">
+            <button
+              className="btn icon-btn"
+              onClick={() => setSelectedMonth((m) => addMonths(m, -1))}
+              aria-label="Previous month"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <span className="month-label">{monthLabel(selectedMonth)}</span>
+            <button
+              className="btn icon-btn"
+              onClick={() => setSelectedMonth((m) => addMonths(m, 1))}
+              aria-label="Next month"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
+
+          <Dashboard
+            bills={bills}
+            selectedMonth={selectedMonth}
+            onEdit={(bill) => {
+              setEditingBill(bill);
+              setShowForm(true);
+            }}
+            onDelete={deleteBill}
+            onTogglePaid={upsertBill}
+          />
+
+          {sortedByCreated.length === 0 && !showForm && (
+            <div className="empty-state">
+              No bills yet. Add one manually, or import from CSV/PDF to get started.
+            </div>
+          )}
+        </>
+      ) : (
+        <TransactionsView
+          transactions={transactions}
+          onImport={handleImportTransactions}
+          onDelete={deleteTransaction}
+        />
+      )}
 
       {showForm && (
         <BillForm
@@ -155,12 +213,6 @@ export default function App() {
       )}
 
       {toast && <div className="toast">{toast}</div>}
-
-      {sortedByCreated.length === 0 && !showForm && (
-        <div className="empty-state">
-          No bills yet. Add one manually, or import from CSV/PDF to get started.
-        </div>
-      )}
     </div>
   );
 }
