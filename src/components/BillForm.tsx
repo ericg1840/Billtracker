@@ -1,6 +1,8 @@
 import { useState } from "react";
 import type { Bill, BillType } from "../types";
-import { DEFAULT_CATEGORIES } from "../types";
+import { DEFAULT_CATEGORIES, KNOWN_PROVIDERS } from "../types";
+
+const OTHER_OPTION = "__other__";
 
 interface Props {
   bill: Bill | null;
@@ -16,8 +18,11 @@ interface Props {
 
 export default function BillForm({ bill, prefill, onSave, onClose }: Props) {
   const isEdit = !!bill;
-  const [name, setName] = useState(bill?.name ?? prefill?.name ?? "");
-  const [category, setCategory] = useState(bill?.category ?? DEFAULT_CATEGORIES[0]);
+  const initialName = bill?.name ?? prefill?.name ?? "";
+  const initialProvider = KNOWN_PROVIDERS.find((p) => p.name === initialName);
+  const [nameOption, setNameOption] = useState(initialProvider ? initialProvider.name : OTHER_OPTION);
+  const [customName, setCustomName] = useState(initialProvider ? "" : initialName);
+  const [category, setCategory] = useState(bill?.category ?? initialProvider?.category ?? DEFAULT_CATEGORIES[0]);
   const [amount, setAmount] = useState(String(bill?.amount ?? prefill?.amount ?? ""));
   const [type, setType] = useState<BillType>(bill?.type ?? (prefill?.dueDate ? "onetime" : "monthly"));
   const [dueDay, setDueDay] = useState(String(bill?.dueDay ?? 1));
@@ -25,6 +30,15 @@ export default function BillForm({ bill, prefill, onSave, onClose }: Props) {
   const [notes, setNotes] = useState(bill?.notes ?? "");
 
   const isAutoDetected = !isEdit && !!prefill?.source;
+  const name = nameOption === OTHER_OPTION ? customName : nameOption;
+
+  function handleNameOptionChange(value: string) {
+    setNameOption(value);
+    const provider = KNOWN_PROVIDERS.find((p) => p.name === value);
+    if (provider) {
+      setCategory(provider.category);
+    }
+  }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -65,8 +79,22 @@ export default function BillForm({ bill, prefill, onSave, onClose }: Props) {
         <form onSubmit={handleSubmit} className="bill-form">
           <label>
             Name
-            <input value={name} onChange={(e) => setName(e.target.value)} required />
+            <select value={nameOption} onChange={(e) => handleNameOptionChange(e.target.value)}>
+              {KNOWN_PROVIDERS.map((p) => (
+                <option key={p.name} value={p.name}>
+                  {p.name}
+                </option>
+              ))}
+              <option value={OTHER_OPTION}>Other…</option>
+            </select>
           </label>
+
+          {nameOption === OTHER_OPTION && (
+            <label>
+              Bill name
+              <input value={customName} onChange={(e) => setCustomName(e.target.value)} required />
+            </label>
+          )}
 
           <label>
             Category
