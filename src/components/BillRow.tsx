@@ -1,6 +1,7 @@
 import type { Bill } from "../types";
 import { amountForMonth, billStatus, dueDateForMonth, isPaid } from "../billLogic";
-import { Pencil, Trash2 } from "lucide-react";
+import { getCategoryStyle } from "../categoryStyle";
+import { Pencil, Trash2, Check } from "lucide-react";
 
 interface Props {
   bill: Bill;
@@ -22,6 +23,7 @@ export default function BillRow({ bill, monthKey, onEdit, onDelete, onTogglePaid
   const amount = amountForMonth(bill, monthKey);
   const due = dueDateForMonth(bill, monthKey);
   const paid = isPaid(bill, monthKey);
+  const { icon: CategoryIcon, color, soft } = getCategoryStyle(bill.category);
 
   function togglePaid() {
     const nextPaid = !paid;
@@ -48,8 +50,13 @@ export default function BillRow({ bill, monthKey, onEdit, onDelete, onTogglePaid
   return (
     <div className={`bill-row status-${status}`}>
       <div className="bill-row-main">
-        <span className="bill-name">{bill.name}</span>
-        <span className="bill-category">{bill.category}</span>
+        <div className="bill-icon-avatar" style={{ background: soft }}>
+          <CategoryIcon size={16} color={color} strokeWidth={2} />
+        </div>
+        <div className="bill-row-text">
+          <span className="bill-name">{bill.name}</span>
+          <span className="bill-category">{bill.category}</span>
+        </div>
       </div>
       <div className="bill-row-due">
         {due ? due.toLocaleDateString() : bill.type === "monthly" ? `Day ${bill.dueDay}` : "—"}
@@ -57,14 +64,19 @@ export default function BillRow({ bill, monthKey, onEdit, onDelete, onTogglePaid
       <div className="bill-row-amount">${amount.toFixed(2)}</div>
       <span className={`badge badge-${status}`}>{STATUS_LABEL[status]}</span>
       <div className="bill-row-actions">
-        <button className="btn btn-sm" onClick={togglePaid}>
-          {paid ? "Mark unpaid" : "Mark paid"}
-        </button>
         <button className="icon-btn" onClick={() => onEdit(bill)} aria-label="Edit">
           <Pencil size={16} />
         </button>
         <button className="icon-btn" onClick={() => onDelete(bill.id)} aria-label="Delete">
           <Trash2 size={16} />
+        </button>
+        <button
+          className={`status-toggle status-${status}`}
+          onClick={togglePaid}
+          aria-label={paid ? "Mark unpaid" : "Mark paid"}
+          title={paid ? "Mark unpaid" : "Mark paid"}
+        >
+          {paid && <Check size={14} strokeWidth={3} />}
         </button>
       </div>
     </div>
